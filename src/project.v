@@ -16,6 +16,7 @@ module tt_um_uwasic_onboarding_daniel_lee (
     input  wire       rst_n     // reset_n - low to reset
 );
 
+
   // Add this inside the module block
   assign uio_oe = 8'hFF; // Set all IOs to output
   
