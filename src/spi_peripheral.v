@@ -79,7 +79,7 @@ module spi_peripheral(
             dff2_out[15-SCLK_count] <= data_received[15-SCLK_count]; 
         end
     end
-
+    
     //Updating Registers
     assign en_reg_out_7_0 = en_out[7:0];
     assign en_reg_out_15_8 = en_out[15:8];
@@ -95,13 +95,18 @@ module spi_peripheral(
             transcation_processed <= 1'b0;
         end else if(transcation_ready & ~transcation_processed)begin
             reg_addr <= dff2_out[14:8];
-            case(reg_addr)
-                7'h0: en_out[7:0] <= dff2_out[7:0];
-                7'h1: en_out[15:8] <= dff2_out[7:0];
-                7'h2: en_reg_pwm[7:0] <= dff2_out[7:0];
-                7'h3: en_reg_pwm[15:8] <= dff2_out[7:0];
-                7'h4: pwm_duty_cycle <= dff2_out[7:0];
-            endcase
+            if(reg_addr == 7'h0)begin
+                en_out[7:0] <= dff2_out[7:0];
+            end else if(reg_addr == 7'h1)begin
+                en_out[15:8] <= dff2_out[7:0];
+            end else if(reg_addr == 7'h2)begin
+                en_reg_pwm[7:0] <= dff2_out[7:0];
+            end else if(reg_addr == 7'h3)begin
+                en_reg_pwm[15:8] <= dff2_out[7:0];
+            end else if(reg_addr == 7'h4)begin
+                pwm_duty_cycle <= dff2_out[7:0];
+            end
+            
             transcation_processed <= 1'b1;
         end else if(~transcation_ready & transcation_processed)begin
             transcation_processed <= 1'b0;
