@@ -107,8 +107,4 @@ module spi_peripheral(
             transcation_processed <= 1'b0;
         end
     end
-
-
-
-
 endmodule
