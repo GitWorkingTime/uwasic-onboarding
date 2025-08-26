@@ -1,3 +1,5 @@
+`default_nettype none
+`timescale 1ns / 1ps
 /*
 ui_in[0] = SCLK
 ui_in[1] = nCS
