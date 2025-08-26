@@ -118,6 +118,7 @@ module spi_peripheral(
                     7'h2: en_reg_pwm_7_0 <= data_received[7:0];
                     7'h3: en_reg_pwm_15_8 <= data_received[7:0];
                     7'h4: pwm_duty_cycle <= data_received[7:0];
+                    default: ;//Do nothing
                 endcase
 
                 transaction_processed <= 1'b1; //Transaction is finished
