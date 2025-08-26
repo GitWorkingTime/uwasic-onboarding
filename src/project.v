@@ -26,18 +26,6 @@ module tt_um_uwasic_onboarding_GitWorkingTime (
   wire [7:0] en_reg_pwm_7_0;
   wire [7:0] en_reg_pwm_15_8;
   wire [7:0] pwm_duty_cycle;
-  spi_peripheral spi_peripheral_inst(
-    .clk(clk),
-    .rst_n(rst_n),
-    .COPI(ui_in[1]),
-    .nCS(ui_in[2]),
-    .SCLK(ui_in[0]),
-    .en_reg_out_7_0(en_reg_out_7_0),
-    .en_reg_out_15_8(en_reg_out_15_8),
-    .en_reg_pwm_7_0(en_reg_out_7_0),
-    .en_reg_pwm_15_8(en_reg_pwm_15_8),
-    .pwm_duty_cycle_out(pwm_duty_cycle)
-  );
 
   // Instantiate the PWM module
   pwm_peripheral pwm_peripheral_inst (
@@ -50,6 +38,20 @@ module tt_um_uwasic_onboarding_GitWorkingTime (
     .pwm_duty_cycle(pwm_duty_cycle),
     .out({uio_out, uo_out})
   );
+
+  spi_peripheral spi_peripheral_inst(
+    .clk(clk),
+    .rst_n(rst_n),
+    .SCLK(ui_in[0]),
+    .nCS(ui_in[2]),
+    .COPI(ui_in[1]),
+    .en_reg_out_15_8(en_reg_out_15_8),
+    .en_reg_out_7_0(en_reg_out_7_0),
+    .en_reg_pwm_15_8(en_reg_out_15_8),
+    .en_reg_pwm_7_0(en_reg_pwm_7_0),
+    .pwm_duty_cycle(pwm_duty_cycle)
+  );
+
   // Add uio_in and ui_in[7:3] to the list of unused signals:
   wire _unused = &{ena, ui_in[7:3], uio_in, 1'b0};
 
