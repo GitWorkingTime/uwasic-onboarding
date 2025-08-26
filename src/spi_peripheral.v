@@ -122,15 +122,15 @@ module spi_peripheral(
                 serial_data <= data_received[7:0];
                 
                 //Going through the register map:
-                if(reg_addr <= 7'h0)begin
+                if(reg_addr == 7'h0)begin
                     en_reg_out_7_0 <= serial_data;
-                end else if(reg_addr <= 7'h1) begin
+                end else if(reg_addr == 7'h1) begin
                     en_reg_out_15_8 <= serial_data;
-                end else if(reg_addr <= 7'h2) begin
+                end else if(reg_addr == 7'h2) begin
                     en_reg_pwm_7_0 <= serial_data;
-                end else if(reg_addr <= 7'h3) begin
+                end else if(reg_addr == 7'h3) begin
                     en_reg_pwm_15_8 <= serial_data;
-                end else if(reg_addr <= 7'h4) begin
+                end else if(reg_addr == 7'h4) begin
                     pwm_duty_cycle <= serial_data;
                 end
 
