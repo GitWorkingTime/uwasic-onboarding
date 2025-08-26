@@ -35,8 +35,6 @@ module spi_peripheral(
     reg SCLK_sync1, SCLK_sync2, SCLK_sync3; // SCLK_sync3 is final output
     
     reg[14:0] data_received; //Need to store the data as a vector
-    reg[6:0] reg_addr;
-    reg[7:0] serial_data;
     always @(posedge clk or negedge rst_n)begin
         if(!rst_n)begin
             nCS_sync1 <= 1'b0;
@@ -66,9 +64,10 @@ module spi_peripheral(
             SCLK_sync2 <= SCLK_sync1;
             SCLK_sync3 <= SCLK_sync2;
 
-            if(nCS_sync3 == 1'b1)begin //nCS is HIGH
+            if(nCS_sync3 == 1'b0)begin
                 transaction_start <= 1'b1;
-                transaction_ready <= 1'b0;
+            end else begin
+                transaction_start <= 1'b0;
             end
 
 
@@ -85,20 +84,15 @@ module spi_peripheral(
             transaction_ready <= 1'b0;
             SCLK_count <= 0;
         end else begin
-            if(SCLK_posedge) begin //Get a SCLK clock signal
-                if(SCLK_count <= 14)begin
+            if(SCLK_posedge && transaction_start) begin //Get a SCLK clock signal + Gather data
+                data_received[14 - SCLK_count] <= COPI_sync3;
+                if(SCLK_count < 14)begin
                     SCLK_count <= SCLK_count + 1; //Count the signal
                 end else begin
                     SCLK_count <= 0;
+                    transaction_start <= 1'b0; //Finished transaction receiving
+                    transaction_ready <= 1'b1; //Transaction ready for processin
                 end
-            end
-
-            //Gather the data
-            if(transaction_start == 1'b1 && transaction_ready == 1'b0)begin //Store data
-                data_received[14 - SCLK_count] <= COPI_sync3;
-            end else if(transaction_ready == 1'b1 && SCLK_count >= 15)begin
-                transaction_start <= 1'b0; //Finished transaction receiving
-                transaction_ready <= 1'b1; //Transaction ready for processin
             end
         end
     end
@@ -118,25 +112,18 @@ module spi_peripheral(
         end else begin
             if(transaction_ready && !transaction_processed)begin
                 //If the transaction is ready to be processed and has not been processed yet:
-                reg_addr <= data_received[14:8];
-                serial_data <= data_received[7:0];
-                
-                //Going through the register map:
-                if(reg_addr == 7'h0)begin
-                    en_reg_out_7_0 <= serial_data;
-                end else if(reg_addr == 7'h1) begin
-                    en_reg_out_15_8 <= serial_data;
-                end else if(reg_addr == 7'h2) begin
-                    en_reg_pwm_7_0 <= serial_data;
-                end else if(reg_addr == 7'h3) begin
-                    en_reg_pwm_15_8 <= serial_data;
-                end else if(reg_addr == 7'h4) begin
-                    pwm_duty_cycle <= serial_data;
-                end
+                case(data_received[14:8])
+                    7'h0: en_reg_out_7_0 <= data_received[7:0];
+                    7'h1: en_reg_out_15_8 <= data_received[7:0];
+                    7'h2: en_reg_pwm_7_0 <= data_received[7:0];
+                    7'h3: en_reg_pwm_15_8 <= data_received[7:0];
+                    7'h4: pwm_duty_cycle <= data_received[7:0];
+                endcase
 
                 transaction_processed <= 1'b1; //Transaction is finished
             end else if(transaction_processed == 1'b1)begin
                 transaction_ready <= 1'b0; //Reset the ready
+                transaction_processed <= 1'b0; //Reset the transaction_processed
             end
         end
     end
