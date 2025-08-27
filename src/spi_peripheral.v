@@ -17,129 +17,127 @@ module spi_peripheral(
     input wire nCS,
     input wire SCLK, //External slower clock
     input wire COPI, //Serial Data
-    output wire [7:0] en_reg_out_7_0_out,
-    output wire [7:0] en_reg_out_15_8_out,
-    output wire [7:0] en_reg_pwm_7_0_out,
-    output wire [7:0] en_reg_pwm_15_8_out,
-    output wire [7:0] pwm_duty_cycle_out
+    output wire [7:0] en_reg_out_7_0,
+    output wire [7:0] en_reg_out_15_8,
+    output wire [7:0] en_reg_pwm_7_0,
+    output wire [7:0] en_reg_pwm_15_8,
+    output wire [7:0] pwm_duty_cycle
 );
 
-    wire clk_sig = clk;
+    integer SCLK_count;
 
-    integer SCLK_count = 0;
-    reg transaction_start;
-    reg transaction_ready;
-    reg transaction_processed;
+    reg[2:0] nCS_sync;
+    reg[2:0] COPI_sync;
+    reg[2:0] SCLK_sync;
+    reg data_start;
+    reg data_ready;
+    reg data_processed;
+    reg[14:0] data;
+    reg[7:0] temp_en_reg_out_7_0;
+    reg[7:0] temp_en_reg_out_15_8;
+    reg[7:0] temp_en_reg_pwm_7_0;
+    reg[7:0] temp_en_reg_pwm_15_8;
+    reg[7:0] temp_pwm_duty_cycle;
 
-    reg [7:0] en_reg_out_7_0;
-    reg [7:0] en_reg_out_15_8;
-    reg [7:0] en_reg_pwm_7_0;
-    reg [7:0] en_reg_pwm_15_8;
-    reg [7:0] pwm_duty_cycle;
+    wire nCS_sig;
+    wire COPI_sig;
+    wire SCLK_sig;
+    wire nCS_negedge;
+    wire nCS_posedge;
+    wire SCLK_posedge;
 
-    assign en_reg_out_7_0_out = en_reg_out_7_0;
-    assign en_reg_out_15_8_out = en_reg_out_15_8;
-    assign en_reg_pwm_7_0_out = en_reg_pwm_7_0;
-    assign en_reg_pwm_15_8_out = en_reg_pwm_15_8;
-    assign pwm_duty_cycle_out = pwm_duty_cycle;
+    assign nCS_sig = nCS_sync[2];
+    assign COPI_sig = COPI_sync[2];
+    assign SCLK_sig = SCLK_sync[2];
+    assign nCS_negedge = ~nCS_sync[1] & nCS_sync[2];
+    assign nCS_posedge = nCS_sync[1] & ~nCS_sync[2];
+    assign SCLK_posedge = SCLK_sync[1] & ~SCLK_sync[2];
+    assign en_reg_out_7_0 = temp_en_reg_out_7_0;
+    assign en_reg_out_15_8 = temp_en_reg_out_15_8;
+    assign en_reg_pwm_7_0 = temp_en_reg_pwm_7_0;
+    assign en_reg_pwm_15_8 = temp_en_reg_pwm_15_8;
+    assign pwm_duty_cycle = temp_pwm_duty_cycle;
 
-    //Clock Domain Crossing data from controller
-    reg nCS_sync1, nCS_sync2, nCS_sync3; //nCS_sync3 is final output
-    reg COPI_sync1, COPI_sync2, COPI_sync3; // COPI_sync3 is final output
-    reg SCLK_sync1, SCLK_sync2, SCLK_sync3; // SCLK_sync3 is final output
-    
-    reg[14:0] data_received; //Need to store the data as a vector
-    always @(posedge clk or negedge rst_n)begin
-        if(!rst_n)begin
-            nCS_sync1 <= 1'b0;
-            nCS_sync2 <= 1'b0;
-            nCS_sync3 <= 1'b0;
-    
-            COPI_sync1 <= 1'b0;
-            COPI_sync2 <= 1'b0;
-            COPI_sync3 <= 1'b0;
-
-            SCLK_sync1 <= 1'b0;
-            SCLK_sync2 <= 1'b0;
-            SCLK_sync3 <= 1'b0;
-        end else begin
-            //nCS signal
-            nCS_sync1 <= nCS;
-            nCS_sync2 <= nCS_sync1;
-            nCS_sync3 <= nCS_sync2;
-
-            //COPI signal
-            COPI_sync1 <= COPI;
-            COPI_sync2 <= COPI_sync1;
-            COPI_sync3 <= COPI_sync2;
-
-            //SCLK signal
-            SCLK_sync1 <= SCLK;
-            SCLK_sync2 <= SCLK_sync1;
-            SCLK_sync3 <= SCLK_sync2;
-
-            if(nCS_sync3 == 1'b0)begin
-                transaction_start <= 1'b1;
-            end else begin
-                transaction_start <= 1'b0;
-            end
-
-
-        end
-    end
-
-    //Getting SCLK rising edge
-    wire SCLK_posedge = !SCLK_sync2 && SCLK_sync3;
-
-    //Gathering Data
-    always @(posedge clk or negedge rst_n)begin
-        if(~rst_n)begin
-            transaction_start <= 1'b0;
-            transaction_ready <= 1'b0;
-            SCLK_count <= 0;
-        end else begin
-            if(SCLK_posedge && transaction_start) begin //Get a SCLK clock signal + Gather data
-                data_received[14 - SCLK_count] <= COPI_sync3;
-                if(SCLK_count < 14)begin
-                    SCLK_count <= SCLK_count + 1; //Count the signal
-                end else begin
-                    SCLK_count <= 0;
-                    transaction_start <= 1'b0; //Finished transaction receiving
-                    transaction_ready <= 1'b1; //Transaction ready for processin
-                end
-            end
-        end
-    end
-
-    //Updating Registers
+    //CDC
     always@(posedge clk or negedge rst_n)begin
         if(!rst_n)begin
-            //Reset registers
-            en_reg_out_15_8 <= 8'b0;
-            en_reg_out_7_0 <= 8'b0;
-            en_reg_pwm_15_8 <= 8'b0;
-            en_reg_pwm_7_0 <= 8'b0;
-            pwm_duty_cycle <= 8'b0;
-
-            //Reset validations
-            transaction_processed <= 1'b0;
+            //Reset all the reg:
+            nCS_sync <= 3'b111; // "Transaction starts on nCS falling edge" => Active-low
+            COPI_sync <= 3'b000;
+            SCLK_sync <= 3'b000; // "Data captured on SCLk rising edge" => Active-high
         end else begin
-            if(transaction_ready && !transaction_processed)begin
-                //If the transaction is ready to be processed and has not been processed yet:
-                case(data_received[14:8])
-                    7'h0: en_reg_out_7_0 <= data_received[7:0];
-                    7'h1: en_reg_out_15_8 <= data_received[7:0];
-                    7'h2: en_reg_pwm_7_0 <= data_received[7:0];
-                    7'h3: en_reg_pwm_15_8 <= data_received[7:0];
-                    7'h4: pwm_duty_cycle <= data_received[7:0];
-                    default: ;//Do nothing
-                endcase
+            //CDC:
+            nCS_sync[0] <= nCS;
+            nCS_sync[1] <= nCS_sync[0];
+            nCS_sync[2] <= nCS_sync[1];
 
-                transaction_processed <= 1'b1; //Transaction is finished
-            end else if(transaction_processed == 1'b1)begin
-                transaction_ready <= 1'b0; //Reset the ready
-                transaction_processed <= 1'b0; //Reset the transaction_processed
+            COPI_sync[0] <= COPI;
+            COPI_sync[1] <= COPI_sync[0];
+            COPI_sync[2] <= COPI_sync[1];
+
+            SCLK_sync[0] <= SCLK;
+            SCLK_sync[1] <= SCLK_sync[0];
+            SCLK_sync[2] <= SCLK_sync[1];
+        end
+    end
+
+    always @(posedge clk or negedge rst_n)begin
+        if(!rst_n)begin
+            data_start <= 1'b0;
+            data_ready <= 1'b0;
+            data_processed <= 1'b0;
+            data <= 15'b0;
+            temp_en_reg_out_15_8 <= 8'b0;
+            temp_en_reg_out_7_0 <= 8'b0;
+            temp_en_reg_pwm_15_8 <= 8'b0;
+            temp_en_reg_pwm_7_0 <= 8'b0;
+            temp_pwm_duty_cycle <= 8'b0;
+        end else begin
+            if(data_start)begin
+                if(SCLK_count < 15 && SCLK_posedge)begin
+                    data[14 - SCLK_count] <= COPI_sig;
+                    SCLK_count <= SCLK_count + 1;
+                end else if(SCLK_count == 15 && data_ready)begin
+                    SCLK_count <= 0; //Reset bit count
+
+                    //Parse the data:
+                    if(data[14:8] == 7'h0)begin
+                        temp_en_reg_out_7_0 <= data[7:0];
+                    end else if(data[14:8] == 7'h1)begin
+                        temp_en_reg_out_15_8 <= data[7:0];
+                    end else if(data[14:8] == 7'h2)begin
+                        temp_en_reg_pwm_7_0 <= data[7:0];
+                    end else if(data[14:8] == 7'h3)begin
+                        temp_en_reg_pwm_15_8 <= data[7:0];
+                    end else if(data[14:8] == 7'h4)begin
+                        temp_pwm_duty_cycle <= data[7:0];
+                    end
+
+                end
+            end
+
+            if(nCS_negedge)begin
+                data_start <= 1'b1;
+                data_ready <= 1'b0;
+            end else if(data_processed)begin
+                data_start <= 1'b0;
+                data_ready <= 1'b1;
             end
         end
     end
+
+    // Update registers only after the complete transaction has finished and been validated
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            data_processed <= 1'b0;
+        end else if (data_ready && !data_processed) begin
+            // Transaction is ready and not yet processed
+            // Set the processed flag
+            data_processed <= 1'b1;
+        end else if (!data_ready && data_processed) begin
+            // Reset processed flag when ready flag is cleared
+            data_processed <= 1'b0;
+        end
+    end
+
 endmodule
