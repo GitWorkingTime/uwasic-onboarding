@@ -92,6 +92,7 @@ module spi_peripheral(
             temp_en_reg_pwm_15_8 <= 8'b0;
             temp_en_reg_pwm_7_0 <= 8'b0;
             temp_pwm_duty_cycle <= 8'b0;
+            SCLK_count <= 0;
         end else begin
             if(data_start)begin
                 if(SCLK_count < 15 && SCLK_posedge)begin
