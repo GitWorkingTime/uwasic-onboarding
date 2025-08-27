@@ -81,8 +81,10 @@ module spi_peripheral(
         end
     end
 
+    //SPI Processing
     always @(posedge clk or negedge rst_n)begin
         if(!rst_n)begin
+            //Reset registers
             data_start <= 1'b0;
             data_ready <= 1'b0;
             data_processed <= 1'b0;
@@ -94,35 +96,38 @@ module spi_peripheral(
             temp_pwm_duty_cycle <= 8'b0;
             SCLK_count <= 0;
         end else begin
-            if(data_start)begin
+            //Only start if the transaction starts
+            if(data_start && !data_ready)begin
                 if(SCLK_count < 15 && SCLK_posedge)begin
-                    data[14 - SCLK_count] <= COPI_sig;
-                    SCLK_count <= SCLK_count + 1;
-                end else if(SCLK_count == 15 && data_ready)begin
+                    data[14 - SCLK_count] <= COPI_sig; //Storing data
+                    SCLK_count <= SCLK_count + 1; //Increase bit count
+                end else if(SCLK_count == 15)begin
                     SCLK_count <= 0; //Reset bit count
+                    data_ready <= 1'b1; //Fully received the data
+                end
+            end
 
-                    //Parse the data:
-                    if(data[14:8] == 7'h0)begin
-                        temp_en_reg_out_7_0 <= data[7:0];
-                    end else if(data[14:8] == 7'h1)begin
-                        temp_en_reg_out_15_8 <= data[7:0];
-                    end else if(data[14:8] == 7'h2)begin
-                        temp_en_reg_pwm_7_0 <= data[7:0];
-                    end else if(data[14:8] == 7'h3)begin
-                        temp_en_reg_pwm_15_8 <= data[7:0];
-                    end else if(data[14:8] == 7'h4)begin
-                        temp_pwm_duty_cycle <= data[7:0];
-                    end
-
+            if(data_ready && !data_processed)begin
+                //Parse the data:
+                if(data[14:8] == 7'h0)begin
+                    temp_en_reg_out_7_0 <= data[7:0];
+                end else if(data[14:8] == 7'h1)begin
+                    temp_en_reg_out_15_8 <= data[7:0];
+                end else if(data[14:8] == 7'h2)begin
+                    temp_en_reg_pwm_7_0 <= data[7:0];
+                end else if(data[14:8] == 7'h3)begin
+                    temp_en_reg_pwm_15_8 <= data[7:0];
+                end else if(data[14:8] == 7'h4)begin
+                    temp_pwm_duty_cycle <= data[7:0];
                 end
             end
 
             if(nCS_negedge)begin
                 data_start <= 1'b1;
                 data_ready <= 1'b0;
-            end else if(data_processed)begin
+                SCLK_count <= 0;
+            end else if(nCS_posedge)begin
                 data_start <= 1'b0;
-                data_ready <= 1'b1;
             end
         end
     end
