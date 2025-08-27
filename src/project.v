@@ -45,11 +45,11 @@ module tt_um_uwasic_onboarding_GitWorkingTime (
     .SCLK(ui_in[0]),
     .nCS(ui_in[2]),
     .COPI(ui_in[1]),
-    .en_reg_out_15_8(en_reg_out_15_8),
-    .en_reg_out_7_0(en_reg_out_7_0),
-    .en_reg_pwm_15_8(en_reg_pwm_15_8),
-    .en_reg_pwm_7_0(en_reg_pwm_7_0),
-    .pwm_duty_cycle(pwm_duty_cycle)
+    .en_reg_out_15_8_out(en_reg_out_15_8),
+    .en_reg_out_7_0_out(en_reg_out_7_0),
+    .en_reg_pwm_15_8_out(en_reg_pwm_15_8),
+    .en_reg_pwm_7_0_out(en_reg_pwm_7_0),
+    .pwm_duty_cycle_out(pwm_duty_cycle)
   );
 
   // Add uio_in and ui_in[7:3] to the list of unused signals:

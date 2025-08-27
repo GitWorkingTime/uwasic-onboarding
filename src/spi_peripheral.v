@@ -17,17 +17,31 @@ module spi_peripheral(
     input wire nCS,
     input wire SCLK, //External slower clock
     input wire COPI, //Serial Data
-    output reg [7:0] en_reg_out_7_0,
-    output reg [7:0] en_reg_out_15_8,
-    output reg [7:0] en_reg_pwm_7_0,
-    output reg [7:0] en_reg_pwm_15_8,
-    output reg [7:0] pwm_duty_cycle
+    output wire [7:0] en_reg_out_7_0_out,
+    output wire [7:0] en_reg_out_15_8_out,
+    output wire [7:0] en_reg_pwm_7_0_out,
+    output wire [7:0] en_reg_pwm_15_8_out,
+    output wire [7:0] pwm_duty_cycle_out
 );
+
+    wire clk_sig = clk;
 
     integer SCLK_count = 0;
     reg transaction_start;
     reg transaction_ready;
     reg transaction_processed;
+
+    reg [7:0] en_reg_out_7_0;
+    reg [7:0] en_reg_out_15_8;
+    reg [7:0] en_reg_pwm_7_0;
+    reg [7:0] en_reg_pwm_15_8;
+    reg [7:0] pwm_duty_cycle;
+
+    assign en_reg_out_7_0_out = en_reg_out_7_0;
+    assign en_reg_out_15_8_out = en_reg_out_15_8;
+    assign en_reg_pwm_7_0_out = en_reg_pwm_7_0;
+    assign en_reg_pwm_15_8_out = en_reg_pwm_15_8;
+    assign pwm_duty_cycle_out = pwm_duty_cycle;
 
     //Clock Domain Crossing data from controller
     reg nCS_sync1, nCS_sync2, nCS_sync3; //nCS_sync3 is final output
